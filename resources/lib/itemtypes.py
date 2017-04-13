@@ -3,10 +3,11 @@
 ###############################################################################
 
 import logging
+import os
 from urllib import urlencode
 from ntpath import dirname
 from datetime import datetime
-from xbmc import sleep
+from xbmc import sleep, translatePath
 
 import artwork
 from utils import tryEncode, tryDecode, settings, window, kodiSQL, \
@@ -1639,9 +1640,16 @@ class Music(Items):
         if doIndirect:
             # Plex works a bit differently
             path = "%s%s" % (self.server, item[0][0].attrib.get('key'))
-            path = API.addPlexCredentialsToUrl(path)
-            filename = path.rsplit('/', 1)[1]
-            path = path.replace(filename, '')
+            ## using .strm files  to circumvent the inability to launch plugins directly from the library for music files
+            songStrmFileDir = "/".join(('special:/', 'userdata', 'addon_data', 'plugin.video.plexkodiconnect', 'musicstreamfiles', ''))
+            songStrmFileName = str(songid) + '.strm'
+            if not os.path.exists(translatePath(songStrmFileDir)):
+                os.makedirs(translatePath(songStrmFileDir))
+            #music and movie plugins are thesame anyway, just select one.
+            with open(translatePath("/".join((songStrmFileDir, songStrmFileName))), 'w') as songStrmFile:
+                songStrmFile.write('plugin://plugin.video.plexkodiconnect/music/' + '?dbid=' + str(songid) + '&mode=play' + '&id=' + str(itemid))
+            path = songStrmFileDir
+            filename = songStrmFileName
 
         # UPDATE THE SONG #####
         if update_item:
